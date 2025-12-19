@@ -57,14 +57,34 @@ app.post('/api/chat', async (req, res) => {
 
 // OpenAI API integration
 async function callOpenAI(message, history, apiKey) {
+    // Format conversation history for OpenAI - ensure all content is string
+    const formattedHistory = history.map((msg, index) => {
+        // Debug logging
+        console.log(`Message ${index}:`, JSON.stringify(msg, null, 2));
+
+        let content = msg.content;
+        if (typeof content !== 'string') {
+            console.warn(`Converting non-string content at index ${index}:`, content);
+            content = String(content);
+        }
+
+        return {
+            role: msg.role || 'user',
+            content: content
+        };
+    });
+
     const messages = [
         {
             role: 'system',
             content: 'You are a helpful AI assistant. Provide clear, concise, and accurate responses. Format code with markdown code blocks.'
         },
-        ...history,
-        { role: 'user', content: message }
+        ...formattedHistory,
+        { role: 'user', content: String(message) }
     ];
+
+    // Debug: log final messages structure
+    console.log('Final messages to OpenAI:', JSON.stringify(messages, null, 2));
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
