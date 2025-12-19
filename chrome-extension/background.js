@@ -19,7 +19,7 @@ const CONTEXT_MENUS = [
     },
     {
         id: 'ai-translate',
-        title: 'AI: Translate',
+        title: 'AI: Translate to...',
         contexts: ['selection']
     },
     {
@@ -29,11 +29,37 @@ const CONTEXT_MENUS = [
     }
 ];
 
+// Language options for translation
+const LANGUAGES = [
+    { id: 'translate-english', title: 'English', lang: 'English' },
+    { id: 'translate-spanish', title: 'Spanish (Español)', lang: 'Spanish' },
+    { id: 'translate-french', title: 'French (Français)', lang: 'French' },
+    { id: 'translate-german', title: 'German (Deutsch)', lang: 'German' },
+    { id: 'translate-italian', title: 'Italian (Italiano)', lang: 'Italian' },
+    { id: 'translate-portuguese', title: 'Portuguese (Português)', lang: 'Portuguese' },
+    { id: 'translate-chinese', title: 'Chinese (中文)', lang: 'Chinese' },
+    { id: 'translate-japanese', title: 'Japanese (日本語)', lang: 'Japanese' },
+    { id: 'translate-korean', title: 'Korean (한국어)', lang: 'Korean' },
+    { id: 'translate-arabic', title: 'Arabic (العربية)', lang: 'Arabic' },
+    { id: 'translate-hindi', title: 'Hindi (हिन्दी)', lang: 'Hindi' },
+    { id: 'translate-russian', title: 'Russian (Русский)', lang: 'Russian' }
+];
+
 // Initialize context menus on install
 chrome.runtime.onInstalled.addListener(() => {
-    // Create context menus
+    // Create main context menus
     CONTEXT_MENUS.forEach(menu => {
         chrome.contextMenus.create(menu);
+    });
+
+    // Create language submenu items under "AI: Translate to..."
+    LANGUAGES.forEach(lang => {
+        chrome.contextMenus.create({
+            id: lang.id,
+            parentId: 'ai-translate',
+            title: lang.title,
+            contexts: ['selection']
+        });
     });
 
     console.log('AI Assistant extension installed');
@@ -53,22 +79,30 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 
     // Determine the action
     let prompt = '';
-    switch (info.menuItemId) {
-        case 'ai-summarize':
-            prompt = `Summarize this text concisely:\n\n${selectedText}`;
-            break;
-        case 'ai-explain':
-            prompt = `Explain this text in simple terms:\n\n${selectedText}`;
-            break;
-        case 'ai-rewrite':
-            prompt = `Rewrite this text to make it clearer and more professional:\n\n${selectedText}`;
-            break;
-        case 'ai-translate':
-            prompt = `Translate this text to English (if not already in English, otherwise translate to Spanish):\n\n${selectedText}`;
-            break;
-        case 'ai-improve':
-            prompt = `Improve the writing quality of this text (fix grammar, enhance clarity, improve flow):\n\n${selectedText}`;
-            break;
+    const menuId = info.menuItemId;
+
+    // Check if it's a translation request
+    if (menuId.startsWith('translate-')) {
+        const language = LANGUAGES.find(l => l.id === menuId);
+        if (language) {
+            prompt = `Translate this text to ${language.lang}:\n\n${selectedText}`;
+        }
+    } else {
+        // Handle other actions
+        switch (menuId) {
+            case 'ai-summarize':
+                prompt = `Summarize this text concisely:\n\n${selectedText}`;
+                break;
+            case 'ai-explain':
+                prompt = `Explain this text in simple terms:\n\n${selectedText}`;
+                break;
+            case 'ai-rewrite':
+                prompt = `Rewrite this text to make it clearer and more professional:\n\n${selectedText}`;
+                break;
+            case 'ai-improve':
+                prompt = `Improve the writing quality of this text (fix grammar, enhance clarity, improve flow):\n\n${selectedText}`;
+                break;
+        }
     }
 
     try {
