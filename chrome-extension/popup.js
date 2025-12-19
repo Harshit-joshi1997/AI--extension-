@@ -61,7 +61,7 @@ function initializeEventListeners() {
     });
 
     // Send message
-    document.getElementById('sendBtn').addEventListener('click', sendMessage);
+    document.getElementById('sendBtn').addEventListener('click', () => sendMessage());
 
     // Enter to send (Shift+Enter for new line)
     document.getElementById('messageInput').addEventListener('keydown', (e) => {
@@ -100,16 +100,15 @@ async function getCurrentTab() {
 // Send message
 async function sendMessage(customMessage = null) {
     const input = document.getElementById('messageInput');
-    const message = customMessage || input.value.trim();
+    let message = customMessage || input.value.trim();
 
-    if (!message) return;
-
-    // Check if settings are configured
-    if (!settings.apiKey && settings.apiProvider !== 'custom') {
-        showNotification('Please configure your API key in settings', 'error');
-        document.getElementById('settingsPanel').classList.add('active');
+    // Ensure message is a string
+    if (typeof message !== 'string') {
+        console.error('Invalid message type:', message);
         return;
     }
+
+    if (!message) return;
 
     // Clear input
     if (!customMessage) {
@@ -126,27 +125,31 @@ async function sendMessage(customMessage = null) {
     // Add user message to UI
     addMessageToUI(message, 'user');
 
-    // Add to conversation history
+    // Add to conversation history - ensure it's a string
     conversationHistory.push({
         role: 'user',
-        content: message
+        content: String(message)
     });
 
     // Show loading
     const loadingId = showLoading();
 
     try {
-        // Send to backend
+        // Filter and validate conversation history
+        const validHistory = conversationHistory.filter(msg =>
+            msg && typeof msg.content === 'string' && msg.role
+        );
+
+        // Send to backend (API key is configured in backend .env)
         const response = await fetch(`${settings.serverUrl}/api/chat`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                message,
-                conversationHistory,
-                provider: settings.apiProvider,
-                apiKey: settings.apiKey
+                message: String(message),
+                conversationHistory: validHistory,
+                provider: settings.apiProvider
             })
         });
 
@@ -161,10 +164,10 @@ async function sendMessage(customMessage = null) {
         // Add AI response to UI
         addMessageToUI(data.response, 'ai');
 
-        // Add to conversation history
+        // Add to conversation history - ensure it's a string
         conversationHistory.push({
             role: 'assistant',
-            content: data.response
+            content: String(data.response || '')
         });
 
     } catch (error) {
