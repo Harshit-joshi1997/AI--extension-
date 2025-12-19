@@ -199,6 +199,12 @@ function addMessageToUI(message, type) {
 
 // Format message (basic markdown support)
 function formatMessage(text) {
+    // Handle non-string inputs
+    if (typeof text !== 'string') {
+        console.error('formatMessage received non-string:', text);
+        return String(text || '');
+    }
+
     // Escape HTML
     let formatted = text
         .replace(/&/g, '&amp;')
